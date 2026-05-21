@@ -70,7 +70,6 @@ assign config_led = !(i2c_init_done && !i2c_error);
         end
     end
 
-    assign led = audio_mode;
 
     // 3. I2S 接收器 (12.288MHz 时钟域)
     logic signed [15:0] i2s_left_12m, i2s_right_12m;
@@ -89,12 +88,13 @@ assign config_led = !(i2c_init_done && !i2c_error);
 
     //跨时钟域处理 (CDC: 12.288MHz -> 100MHz) 
     logic [2:0] valid_sync_100m;
-    logic signed [15:0] i2s_left_100m;
+    logic signed [15:0] i2s_left_100m, i2s_right_100m;
 
     always_ff @(posedge clk_100m or negedge rst_n) begin
         if (!rst_n) begin
             valid_sync_100m <= 3'b0;
             i2s_left_100m   <= 16'd0;
+            i2s_right_100m  <= 16'd0;
         end else begin
             // 经典打拍：将 12M 域的 valid 信号同步到 100M 域
             valid_sync_100m <= {valid_sync_100m[1:0], i2s_valid_12m};
@@ -103,6 +103,7 @@ assign config_led = !(i2c_init_done && !i2c_error);
             // 此时 i2s_left_12m 的数据早就稳定了几十纳秒，读取绝对安全！
             if (valid_sync_100m[2:1] == 2'b01) begin
                 i2s_left_100m <= i2s_left_12m;
+                i2s_right_100m <= i2s_right_12m;
             end
         end
     end
@@ -115,56 +116,28 @@ assign config_led = !(i2c_init_done && !i2c_error);
         .sin_1k (sin_1k_16b)
     );
 
-    // // 4. 音频流安全放大与多路选择 (MUX)
-    // logic signed [15:0] final_audio_stream;
-    // logic signed [21:0] scaled_audio; // 拓宽位宽防止计算溢出
-    
-    // // 给麦克风信号乘以 32 倍
-    // assign scaled_audio = i2s_left_100m *4; 
-
-    // // 饱和截断逻辑 (防爆音限幅器)
-    // always_comb begin
-    //     if (audio_mode == 1'b0) begin
-    //         final_audio_stream = sin_1k_16b; // 1kHz 模式
-    //     end else begin
-    //         // 麦克风模式：判断放大后的数据是否超出了 16-bit 有符号数的极限
-    //         if (scaled_audio > 22'sd32767) 
-    //             final_audio_stream = 16'sd32767;     // 正向削峰
-    //         else if (scaled_audio < -22'sd32768) 
-    //             final_audio_stream = -16'sd32768;    // 负向削峰
-    //         else 
-    //             final_audio_stream = scaled_audio[15:0]; // 安全范围内，正常截取
-    //     end
-    // end
-
-// =========================================================
+    // =========================================================
     // 6. 音频流处理核心 (噪声门 -> 放大 -> 饱和截断)
     // =========================================================
     
-    // Stage 1: 数字噪声门
-    logic signed [15:0] gated_audio;
-    localparam signed [15:0] NOISE_THRESHOLD = 16'sd200; // 根据实际底噪调整
+    // // Stage 1: 数字噪声门
+    // logic signed [15:0] gated_audio;
+    // localparam signed [15:0] NOISE_THRESHOLD = 16'sd100; // 根据实际底噪调整
     
-    always_comb begin
-        // 提取绝对值进行判断，滤除微小底噪
-        if (i2s_left_100m > NOISE_THRESHOLD || i2s_left_100m < -NOISE_THRESHOLD)
-            gated_audio = i2s_left_100m; 
-        else
-            gated_audio = 16'sd0; // 纯净待机
-    end
+    // always_comb begin
+    //     // 提取绝对值进行判断，滤除微小底噪
+    //     if (i2s_left_100m > NOISE_THRESHOLD || i2s_left_100m < -NOISE_THRESHOLD)
+    //         gated_audio = i2s_left_100m; // 这里选择左声道作为主信号，右声道同样可以尝试
+    //     else
+    //         gated_audio = 16'sd0; // 纯净待机
+    // end
 
     // Stage 2: 拓宽位宽并进行增益放大
     logic signed [21:0] scaled_audio;
     // 这里的放大倍数可以根据需要调整 (例如 4, 8, 16)
-    // 既然 *1 太小，*8 足够响，建议保留 *8 或 *4
 
-    assign scaled_audio = gated_audio; 
-ila_0 u_ila_0 (
-	.clk(clk_100m), // input wire clk
+    assign scaled_audio = i2s_left_100m*8; 
 
-
-	.probe0(scaled_audio) // input wire [20:0] probe0
-);
     // Stage 3: 多路选择与饱和限幅器 (防爆音)
     logic signed [15:0] final_audio_stream;
     
@@ -181,6 +154,27 @@ ila_0 u_ila_0 (
                 final_audio_stream = scaled_audio[15:0]; // 安全区间原样输出
         end
     end
+
+    // // 替换原有的 Stage 3 逻辑
+    // logic signed [15:0] final_audio_stream;
+    // logic signed [15:0] limited_external_audio;
+
+    // // 软限幅模块
+    // audio_soft_limiter u_soft_limiter (
+    //     .clk      (clk_100m),
+    //     .rst_n    (rst_n),
+    //     .audio_in (scaled_audio),             // 22-bit 放大信号
+    //     .audio_out(limited_external_audio)    // 16-bit 平滑限幅信号
+    // );
+
+    // // 多路选择
+    // always_comb begin
+    //     if (audio_mode == 1'b0) begin
+    //         final_audio_stream = sin_1k_16b;  // DDS 模式保持
+    //     end else begin
+    //         final_audio_stream = limited_external_audio; // 换用平滑的外部音频
+    //     end
+    // end
 
     // 5. 串口协议解析 (幅度与相位控制)
     logic [7:0]  beam_amplitude [0:31];
@@ -202,6 +196,7 @@ ila_0 u_ila_0 (
          .o_rx_done(uart_done)
     );
 
+    logic o_update_pulse; // 当新数据准备好时，产生一个时钟周期的脉冲，通知 PWM 模块更新参数
     uart_protocol_parser u_parser (
         .clk(clk_100m), 
         .rst_n(rst_n), 
