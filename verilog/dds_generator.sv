@@ -1,29 +1,24 @@
 `timescale 1ns / 1ps
-// 语言: Verilog-2001
 
 module dds_generator (
-    input  wire        clk,      // 100MHz 系统时钟
+    input  wire        clk,
     input  wire        rst_n,
-    output reg  signed [15:0] sin_1k  // 输出总线拓宽为 16-bit
+    input  wire [31:0] ftw,
+    input  wire [15:0] amplitude,
+    output reg  signed [15:0] sin_1k
 );
 
-    // 1kHz FTW = (1000 * 2^32) / 100_000_000 = 42950
-    localparam [31:0] FTW_1K = 32'd42950;
-    
     reg [31:0] phase_acc;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) phase_acc <= 32'd0;
-        else        phase_acc <= phase_acc + FTW_1K;
+        if (!rst_n)
+            phase_acc <= 32'd0;
+        else
+            phase_acc <= phase_acc + ftw;
     end
 
-    // 高 8 位作为全局相位 (0~255)
     wire [7:0] phase_idx = phase_acc[31:24];
-    
-    // 严格取低 6 位作为 0~63 的查表物理地址，杜绝越界
-    wire [5:0] lut_idx = phase_idx[5:0]; 
-    
-    //寄存器宽度升为 15 位，存储真正的 16 位正弦波第一象限绝对值
-    // 公式: round(32767 * sin(pi/2 * i/64))
+    wire [5:0] lut_idx = phase_idx[5:0];
+
     reg [14:0] quarter_lut [0:63];
     initial begin
         quarter_lut[0]=0;     quarter_lut[1]=804;   quarter_lut[2]=1608;  quarter_lut[3]=2410;
@@ -44,17 +39,16 @@ module dds_generator (
         quarter_lut[60]=32609;quarter_lut[61]=32678;quarter_lut[62]=32727;quarter_lut[63]=32757;
     end
 
-    // phase_idx[6] 控制象限翻转，实现镜像平滑
-    // 取出的数据线拓宽到 15 位
-    wire [14:0] lut_val = (phase_idx[6]) ? quarter_lut[63 - lut_idx] : quarter_lut[lut_idx];
-    
+    wire [14:0] lut_val = phase_idx[6] ? quarter_lut[63 - lut_idx] : quarter_lut[lut_idx];
+    wire [30:0] scaled_lut = {1'b0, lut_val} * amplitude;
+    wire [15:0] scaled_sin = scaled_lut[30:15];
+
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) sin_1k <= 16'd0;
-        else begin
-            // phase_idx[7] 决定正负半周
-            // {1'b0, lut_val} 会自动拼成 16 位的正数，前面加负号直接完成 16位补码转换
-            if (phase_idx[7]) sin_1k <= -{1'b0, lut_val};
-            else              sin_1k <=  {1'b0, lut_val};
-        end
+        if (!rst_n)
+            sin_1k <= 16'sd0;
+        else if (phase_idx[7])
+            sin_1k <= -scaled_sin;
+        else
+            sin_1k <= scaled_sin;
     end
 endmodule

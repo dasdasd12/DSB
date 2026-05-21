@@ -14,6 +14,7 @@ module tb_uart_rx_protocol;
     logic [7:0] amplitude [0:31];
     logic [11:0] phase [0:31];
     logic update_pulse;
+    logic debug_update_pulse;
 
     integer pass_cnt;
     integer error_cnt;
@@ -40,7 +41,38 @@ module tb_uart_rx_protocol;
         .rx_done        (uart_done),
         .o_amplitude    (amplitude),
         .o_phase        (phase),
-        .o_update_pulse (update_pulse)
+        .o_update_pulse (update_pulse),
+        .o_debug_version(),
+        .o_array_profile(),
+        .o_debug_flags(),
+        .o_gain_q8(),
+        .o_limiter_mode(),
+        .o_limiter_threshold(),
+        .o_audio_depth_q8(),
+        .o_dc_offset(),
+        .o_test_ftw(),
+        .o_test_amp(),
+        .o_max_duty(),
+        .o_output_mask(),
+        .o_debug_update_pulse(debug_update_pulse),
+        .o_mod_version(),
+        .o_mod_array_profile(),
+        .o_mod_flags(),
+        .o_mod_source_select(),
+        .o_modulation_mode(),
+        .o_mod_sideband(),
+        .o_debug_probe_select(),
+        .o_input_gain_q8(),
+        .o_mod_limiter_mode(),
+        .o_mod_limiter_threshold(),
+        .o_mod_dc_offset(),
+        .o_mod_index_q15(),
+        .o_envelope_scale_q8(),
+        .o_mod_test_ftw(),
+        .o_mod_test_amp(),
+        .o_mod_max_duty(),
+        .o_mod_output_mask(),
+        .o_mod_update_pulse()
     );
 
     initial begin

@@ -6,6 +6,7 @@ from collections import namedtuple
 
 
 CHANNEL_COUNT = 32
+DEBUG_PAYLOAD_BYTES = 28
 SOUND_SPEED_M_S = 343.0
 CARRIER_HZ = 40000.0
 FPGA_CLK_HZ = 100_000_000
@@ -205,6 +206,42 @@ def build_packet(amplitudes, phases):
     packet.extend([0x0D, 0x0A])
     if len(packet) != 102:
         raise AssertionError("N32 UART packet length must be 102 bytes")
+    return bytes(packet)
+
+
+def build_debug_packet(
+    version=1,
+    array_profile=0,
+    flags=0x09,
+    gain_q8=256,
+    limiter_mode=0,
+    limiter_threshold=32767,
+    audio_depth_q8=256,
+    dc_offset=0,
+    test_ftw=42950,
+    test_amp=8192,
+    max_duty=1250,
+    output_mask=0x00000000FFFFFFFF,
+):
+    packet = bytearray([0xAA, 0xBB, 0x02])
+    packet.append(int(clamp(version, 0, 255)) & 0xFF)
+    packet.append(int(clamp(array_profile, 0, 255)) & 0xFF)
+    packet.append(int(clamp(flags, 0, 255)) & 0xFF)
+    packet.extend(struct.pack("<H", int(clamp(gain_q8, 0, 65535))))
+    packet.append(int(clamp(limiter_mode, 0, 255)) & 0xFF)
+    packet.extend(struct.pack("<h", int(clamp(limiter_threshold, -32768, 32767))))
+    packet.extend(struct.pack("<H", int(clamp(audio_depth_q8, 0, 65535))))
+    packet.extend(struct.pack("<h", int(clamp(dc_offset, -32768, 32767))))
+    packet.extend(struct.pack("<I", int(clamp(test_ftw, 0, 0xFFFFFFFF))))
+    packet.extend(struct.pack("<H", int(clamp(test_amp, 0, 65535))))
+    packet.extend(struct.pack("<H", int(clamp(max_duty, 0, 4095))))
+    packet.extend(struct.pack("<Q", int(clamp(output_mask, 0, 0xFFFFFFFFFFFFFFFF))))
+    if len(packet) != 2 + 1 + DEBUG_PAYLOAD_BYTES:
+        raise AssertionError("debug UART payload length mismatch")
+    packet.append(sum(packet[2:]) & 0xFF)
+    packet.extend([0x0D, 0x0A])
+    if len(packet) != 34:
+        raise AssertionError("debug UART packet length must be 34 bytes")
     return bytes(packet)
 
 

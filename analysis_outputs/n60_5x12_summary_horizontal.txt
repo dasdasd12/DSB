@@ -1,0 +1,202 @@
+N60 5x12 horizontal dBc-margin optimization study
+==================================================
+Geometry: 5 x N12 units, angles -45.0, -22.5, 0.0, 22.5, 45.0 deg
+Unit attenuation: floor=0.15 gamma=2.0
+Full 60-channel optimization: SLSQP; optimized_dbc_margin maximizes dBc improvement minus gain loss, optimized_table keeps 0.50 gain floor, optimized_aggressive chooses best sidelobe score across floors 0.25, 0.35, 0.50, 0.70.
+Directionality check: heatmap peak offset must be <= 3.0 deg from target.
+Cases: 5 distances x 13 azimuths x 1 elevations = 65 cases
+
+Averages by mode:
+mode                          maxSL       dBc+   gainLoss     margin      p99SL    meanAmp
+uniform                       -9.95       0.00       0.00       0.00     -11.11       1.00
+unit_cosine                   -8.95      -1.00       3.20      -4.21     -10.33       0.74
+unit_cosine_hamming           -6.76      -3.19      13.37     -16.56      -7.57       0.23
+optimized_dbc_margin         -12.32       2.37       1.56       0.81     -13.46       0.77
+optimized_table              -13.09       3.14       5.98      -2.84     -14.36       0.51
+optimized_aggressive         -12.78       2.82      11.04      -8.22     -14.19       0.35
+
+Large-angle p99 result: unit_cosine_hamming beats/equal uniform in 0/30 large-angle cases.
+Balanced 60-channel optimized table beats/equal uniform p99 in 65/65 cases.
+Aggressive 60-channel optimized table beats/equal uniform p99 in 65/65 cases.
+
+Engineering criterion: dBc improvement must exceed gain loss.
+  unit_cosine            maxSL dBc margin positive: 0/65, avg margin -4.21 dB; p99 margin positive: 0/65, avg margin -3.98 dB
+  unit_cosine_hamming    maxSL dBc margin positive: 0/65, avg margin -16.56 dB; p99 margin positive: 0/65, avg margin -16.92 dB
+  optimized_dbc_margin   maxSL dBc margin positive: 55/65, avg margin 0.81 dB; p99 margin positive: 62/65, avg margin 0.79 dB
+  optimized_table        maxSL dBc margin positive: 0/65, avg margin -2.84 dB; p99 margin positive: 0/65, avg margin -2.73 dB
+  optimized_aggressive   maxSL dBc margin positive: 1/65, avg margin -8.22 dB; p99 margin positive: 0/65, avg margin -7.97 dB
+
+optimized_dbc_margin improves average margin over balanced_table by 3.65 dB.
+
+Gain warnings below -6 dB, consider raising floor:
+  0.5m az=-30 el=+0 mode=unit_cosine gain=-6.40 dB
+  0.5m az=-30 el=+0 mode=unit_cosine_hamming gain=-16.58 dB
+  0.5m az=-30 el=+0 mode=optimized_table gain=-6.02 dB
+  0.5m az=-30 el=+0 mode=optimized_aggressive gain=-12.04 dB
+  0.5m az=-25 el=+0 mode=unit_cosine_hamming gain=-15.05 dB
+  0.5m az=-25 el=+0 mode=optimized_table gain=-6.02 dB
+  0.5m az=-25 el=+0 mode=optimized_aggressive gain=-12.04 dB
+  0.5m az=-20 el=+0 mode=unit_cosine_hamming gain=-13.76 dB
+  0.5m az=-20 el=+0 mode=optimized_table gain=-6.02 dB
+  0.5m az=-20 el=+0 mode=optimized_aggressive gain=-12.04 dB
+  0.5m az=-15 el=+0 mode=unit_cosine_hamming gain=-12.71 dB
+  0.5m az=-15 el=+0 mode=optimized_table gain=-6.02 dB
+  0.5m az=-15 el=+0 mode=optimized_aggressive gain=-12.04 dB
+  0.5m az=-10 el=+0 mode=unit_cosine_hamming gain=-11.91 dB
+  0.5m az=-10 el=+0 mode=optimized_table gain=-6.02 dB
+  0.5m az=-10 el=+0 mode=optimized_aggressive gain=-12.04 dB
+  0.5m az=-5 el=+0 mode=unit_cosine_hamming gain=-11.37 dB
+  0.5m az=-5 el=+0 mode=optimized_table gain=-6.02 dB
+  0.5m az=-5 el=+0 mode=optimized_aggressive gain=-7.27 dB
+  0.5m az=+0 el=+0 mode=unit_cosine_hamming gain=-11.20 dB
+
+All selected heatmap modes keep the peak within 3.0 deg of target.
+
+Selected cases:
+  case 0.5m az=-30 el=+0
+    uniform                maxSL= -11.26 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -13.05 meanAmp= 1.00
+    unit_cosine            maxSL=  -9.79 dBc+= -1.47 loss=  6.40 margin= -7.86 p99= -12.45 meanAmp= 0.68
+    unit_cosine_hamming    maxSL=  -5.46 dBc+= -5.79 loss= 16.58 margin=-22.37 p99=  -5.83 meanAmp= 0.21
+    optimized_dbc_margin   maxSL= -13.83 dBc+=  2.57 loss=  2.59 margin= -0.02 p99= -15.17 meanAmp= 0.75
+    optimized_table        maxSL= -13.01 dBc+=  1.76 loss=  6.02 margin= -4.26 p99= -14.64 meanAmp= 0.55
+    optimized_aggressive   maxSL= -11.71 dBc+=  0.46 loss= 12.04 margin=-11.58 p99= -14.51 meanAmp= 0.33
+  case 0.5m az=-20 el=+0
+    uniform                maxSL= -11.18 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -12.89 meanAmp= 1.00
+    unit_cosine            maxSL= -10.36 dBc+= -0.82 loss=  3.62 margin= -4.44 p99= -12.03 meanAmp= 0.73
+    unit_cosine_hamming    maxSL=  -5.59 dBc+= -5.58 loss= 13.76 margin=-19.35 p99=  -6.24 meanAmp= 0.23
+    optimized_dbc_margin   maxSL= -12.88 dBc+=  1.70 loss=  1.97 margin= -0.27 p99= -15.57 meanAmp= 0.81
+    optimized_table        maxSL= -13.54 dBc+=  2.37 loss=  6.02 margin= -3.65 p99= -15.10 meanAmp= 0.57
+    optimized_aggressive   maxSL= -14.06 dBc+=  2.88 loss= 12.04 margin= -9.16 p99= -15.21 meanAmp= 0.34
+  case 0.5m az=-10 el=+0
+    uniform                maxSL= -10.43 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.29 meanAmp= 1.00
+    unit_cosine            maxSL= -10.51 dBc+=  0.09 loss=  1.74 margin= -1.66 p99= -11.72 meanAmp= 0.77
+    unit_cosine_hamming    maxSL=  -5.48 dBc+= -4.95 loss= 11.91 margin=-16.86 p99=  -6.47 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -11.94 dBc+=  1.52 loss=  1.75 margin= -0.23 p99= -14.93 meanAmp= 0.78
+    optimized_table        maxSL= -12.75 dBc+=  2.33 loss=  6.02 margin= -3.69 p99= -15.18 meanAmp= 0.50
+    optimized_aggressive   maxSL= -12.91 dBc+=  2.48 loss= 12.04 margin= -9.56 p99= -14.88 meanAmp= 0.29
+  case 0.5m az=+0 el=+0
+    uniform                maxSL= -10.61 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.47 meanAmp= 1.00
+    unit_cosine            maxSL= -10.89 dBc+=  0.28 loss=  1.05 margin= -0.77 p99= -11.71 meanAmp= 0.78
+    unit_cosine_hamming    maxSL=  -5.49 dBc+= -5.13 loss= 11.20 margin=-16.32 p99=  -7.06 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -12.78 dBc+=  2.16 loss=  2.05 margin=  0.11 p99= -14.79 meanAmp= 0.69
+    optimized_table        maxSL= -12.70 dBc+=  2.09 loss=  5.02 margin= -2.93 p99= -15.70 meanAmp= 0.50
+    optimized_aggressive   maxSL= -12.61 dBc+=  1.99 loss=  5.08 margin= -3.09 p99= -15.76 meanAmp= 0.48
+  case 0.5m az=+10 el=+0
+    uniform                maxSL=  -9.78 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.61 meanAmp= 1.00
+    unit_cosine            maxSL= -10.87 dBc+=  1.09 loss=  1.74 margin= -0.65 p99= -11.58 meanAmp= 0.77
+    unit_cosine_hamming    maxSL=  -5.48 dBc+= -4.30 loss= 11.91 margin=-16.20 p99=  -6.47 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -13.26 dBc+=  3.48 loss=  2.08 margin=  1.40 p99= -14.49 meanAmp= 0.74
+    optimized_table        maxSL= -13.05 dBc+=  3.27 loss=  6.02 margin= -2.75 p99= -15.91 meanAmp= 0.50
+    optimized_aggressive   maxSL= -12.94 dBc+=  3.17 loss= 12.04 margin= -8.87 p99= -16.12 meanAmp= 0.28
+  case 0.5m az=+20 el=+0
+    uniform                maxSL= -11.56 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -12.24 meanAmp= 1.00
+    unit_cosine            maxSL= -11.19 dBc+= -0.37 loss=  3.62 margin= -3.99 p99= -12.18 meanAmp= 0.73
+    unit_cosine_hamming    maxSL=  -5.60 dBc+= -5.97 loss= 13.76 margin=-19.73 p99=  -6.24 meanAmp= 0.23
+    optimized_dbc_margin   maxSL= -13.90 dBc+=  2.34 loss=  2.37 margin= -0.04 p99= -15.44 meanAmp= 0.78
+    optimized_table        maxSL= -13.60 dBc+=  2.03 loss=  6.02 margin= -3.99 p99= -15.58 meanAmp= 0.57
+    optimized_aggressive   maxSL= -14.19 dBc+=  2.63 loss= 12.04 margin= -9.41 p99= -15.42 meanAmp= 0.37
+  case 0.5m az=+30 el=+0
+    uniform                maxSL= -12.08 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -13.02 meanAmp= 1.00
+    unit_cosine            maxSL= -10.98 dBc+= -1.10 loss=  6.40 margin= -7.50 p99= -12.37 meanAmp= 0.68
+    unit_cosine_hamming    maxSL=  -5.46 dBc+= -6.62 loss= 16.58 margin=-23.19 p99=  -5.83 meanAmp= 0.21
+    optimized_dbc_margin   maxSL= -13.75 dBc+=  1.67 loss=  2.48 margin= -0.81 p99= -14.88 meanAmp= 0.75
+    optimized_table        maxSL= -14.05 dBc+=  1.97 loss=  6.02 margin= -4.05 p99= -14.76 meanAmp= 0.56
+    optimized_aggressive   maxSL= -13.39 dBc+=  1.31 loss= 12.04 margin=-10.73 p99= -14.88 meanAmp= 0.36
+  case 2.0m az=-30 el=+0
+    uniform                maxSL=  -9.48 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.55 meanAmp= 1.00
+    unit_cosine            maxSL=  -7.89 dBc+= -1.59 loss=  6.52 margin= -8.11 p99=  -9.59 meanAmp= 0.68
+    unit_cosine_hamming    maxSL=  -7.94 dBc+= -1.54 loss= 16.69 margin=-18.23 p99=  -8.45 meanAmp= 0.21
+    optimized_dbc_margin   maxSL= -12.22 dBc+=  2.73 loss=  1.59 margin=  1.14 p99= -13.56 meanAmp= 0.84
+    optimized_table        maxSL= -13.74 dBc+=  4.26 loss=  6.02 margin= -1.76 p99= -14.75 meanAmp= 0.59
+    optimized_aggressive   maxSL= -13.79 dBc+=  4.31 loss= 12.04 margin= -7.73 p99= -14.24 meanAmp= 0.40
+  case 2.0m az=-20 el=+0
+    uniform                maxSL=  -9.47 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.94 meanAmp= 1.00
+    unit_cosine            maxSL=  -7.37 dBc+= -2.10 loss=  3.79 margin= -5.89 p99=  -9.52 meanAmp= 0.73
+    unit_cosine_hamming    maxSL=  -6.47 dBc+= -3.00 loss= 13.96 margin=-16.96 p99=  -7.22 meanAmp= 0.23
+    optimized_dbc_margin   maxSL= -11.68 dBc+=  2.21 loss=  1.39 margin=  0.83 p99= -13.16 meanAmp= 0.75
+    optimized_table        maxSL= -13.43 dBc+=  3.96 loss=  6.02 margin= -2.06 p99= -14.47 meanAmp= 0.50
+    optimized_aggressive   maxSL= -13.92 dBc+=  4.44 loss=  9.12 margin= -4.68 p99= -14.76 meanAmp= 0.38
+  case 2.0m az=-10 el=+0
+    uniform                maxSL=  -9.78 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.70 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.96 dBc+= -0.82 loss=  1.57 margin= -2.38 p99= -10.25 meanAmp= 0.77
+    unit_cosine_hamming    maxSL=  -7.13 dBc+= -2.66 loss= 11.74 margin=-14.39 p99=  -8.31 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -12.16 dBc+=  2.38 loss=  1.49 margin=  0.89 p99= -13.25 meanAmp= 0.79
+    optimized_table        maxSL= -12.91 dBc+=  3.12 loss=  6.02 margin= -2.90 p99= -14.06 meanAmp= 0.50
+    optimized_aggressive   maxSL= -12.57 dBc+=  2.78 loss= 12.04 margin= -9.26 p99= -13.68 meanAmp= 0.34
+  case 2.0m az=+0 el=+0
+    uniform                maxSL=  -9.71 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.47 meanAmp= 1.00
+    unit_cosine            maxSL= -10.13 dBc+=  0.42 loss=  0.63 margin= -0.21 p99= -10.81 meanAmp= 0.78
+    unit_cosine_hamming    maxSL=  -7.03 dBc+= -2.68 loss= 10.80 margin=-13.48 p99=  -7.42 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -11.77 dBc+=  2.06 loss=  1.44 margin=  0.63 p99= -12.64 meanAmp= 0.59
+    optimized_table        maxSL= -12.80 dBc+=  3.09 loss=  5.06 margin= -1.97 p99= -13.22 meanAmp= 0.38
+    optimized_aggressive   maxSL= -12.80 dBc+=  3.09 loss=  5.06 margin= -1.97 p99= -13.22 meanAmp= 0.38
+  case 2.0m az=+10 el=+0
+    uniform                maxSL=  -9.75 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.80 meanAmp= 1.00
+    unit_cosine            maxSL=  -9.01 dBc+= -0.74 loss=  1.57 margin= -2.31 p99= -10.44 meanAmp= 0.77
+    unit_cosine_hamming    maxSL=  -7.13 dBc+= -2.62 loss= 11.74 margin=-14.36 p99=  -8.34 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -12.82 dBc+=  3.07 loss=  1.60 margin=  1.47 p99= -13.18 meanAmp= 0.78
+    optimized_table        maxSL= -13.09 dBc+=  3.34 loss=  6.02 margin= -2.68 p99= -14.01 meanAmp= 0.53
+    optimized_aggressive   maxSL= -12.36 dBc+=  2.61 loss= 12.04 margin= -9.43 p99= -13.97 meanAmp= 0.33
+  case 2.0m az=+20 el=+0
+    uniform                maxSL=  -9.75 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.55 meanAmp= 1.00
+    unit_cosine            maxSL=  -7.62 dBc+= -2.13 loss=  3.79 margin= -5.92 p99=  -9.68 meanAmp= 0.73
+    unit_cosine_hamming    maxSL=  -6.39 dBc+= -3.36 loss= 13.96 margin=-17.33 p99=  -7.21 meanAmp= 0.23
+    optimized_dbc_margin   maxSL= -11.75 dBc+=  2.00 loss=  1.21 margin=  0.79 p99= -13.41 meanAmp= 0.76
+    optimized_table        maxSL= -12.92 dBc+=  3.17 loss=  6.02 margin= -2.85 p99= -14.62 meanAmp= 0.50
+    optimized_aggressive   maxSL= -13.35 dBc+=  3.59 loss= 12.04 margin= -8.45 p99= -14.45 meanAmp= 0.31
+  case 2.0m az=+30 el=+0
+    uniform                maxSL=  -9.29 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.30 meanAmp= 1.00
+    unit_cosine            maxSL=  -7.46 dBc+= -1.83 loss=  6.52 margin= -8.35 p99=  -9.70 meanAmp= 0.68
+    unit_cosine_hamming    maxSL=  -7.87 dBc+= -1.42 loss= 16.69 margin=-18.11 p99=  -8.42 meanAmp= 0.21
+    optimized_dbc_margin   maxSL= -12.51 dBc+=  3.21 loss=  1.32 margin=  1.89 p99= -13.48 meanAmp= 0.88
+    optimized_table        maxSL= -12.79 dBc+=  3.50 loss=  6.02 margin= -2.52 p99= -14.53 meanAmp= 0.57
+    optimized_aggressive   maxSL= -12.76 dBc+=  3.47 loss= 12.04 margin= -8.57 p99= -14.38 meanAmp= 0.38
+  case 5.0m az=-30 el=+0
+    uniform                maxSL= -10.41 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.49 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.70 dBc+= -1.71 loss=  6.56 margin= -8.28 p99=  -9.46 meanAmp= 0.68
+    unit_cosine_hamming    maxSL=  -8.05 dBc+= -2.36 loss= 16.74 margin=-19.09 p99=  -8.59 meanAmp= 0.21
+    optimized_dbc_margin   maxSL= -12.94 dBc+=  2.53 loss=  1.27 margin=  1.27 p99= -13.26 meanAmp= 0.86
+    optimized_table        maxSL= -13.93 dBc+=  3.52 loss=  6.02 margin= -2.50 p99= -14.74 meanAmp= 0.53
+    optimized_aggressive   maxSL= -14.32 dBc+=  3.91 loss= 12.04 margin= -8.13 p99= -15.44 meanAmp= 0.36
+  case 5.0m az=-20 el=+0
+    uniform                maxSL= -10.08 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.21 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.08 dBc+= -1.99 loss=  3.81 margin= -5.80 p99=  -9.63 meanAmp= 0.73
+    unit_cosine_hamming    maxSL=  -6.67 dBc+= -3.41 loss= 13.98 margin=-17.39 p99=  -7.67 meanAmp= 0.23
+    optimized_dbc_margin   maxSL= -12.12 dBc+=  2.05 loss=  1.01 margin=  1.04 p99= -12.50 meanAmp= 0.75
+    optimized_table        maxSL= -13.94 dBc+=  3.86 loss=  6.02 margin= -2.16 p99= -14.39 meanAmp= 0.48
+    optimized_aggressive   maxSL= -13.24 dBc+=  3.16 loss= 12.04 margin= -8.88 p99= -14.14 meanAmp= 0.31
+  case 5.0m az=-10 el=+0
+    uniform                maxSL=  -9.25 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.45 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.72 dBc+= -0.53 loss=  1.51 margin= -2.04 p99= -10.63 meanAmp= 0.77
+    unit_cosine_hamming    maxSL=  -8.04 dBc+= -1.21 loss= 11.69 margin=-12.89 p99=  -8.61 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -11.84 dBc+=  2.59 loss=  1.26 margin=  1.33 p99= -12.67 meanAmp= 0.80
+    optimized_table        maxSL= -12.50 dBc+=  3.25 loss=  6.02 margin= -2.78 p99= -13.85 meanAmp= 0.52
+    optimized_aggressive   maxSL= -12.04 dBc+=  2.79 loss= 12.04 margin= -9.26 p99= -13.77 meanAmp= 0.33
+  case 5.0m az=+0 el=+0
+    uniform                maxSL=  -9.06 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.27 meanAmp= 1.00
+    unit_cosine            maxSL=  -9.44 dBc+=  0.38 loss=  0.70 margin= -0.32 p99= -10.59 meanAmp= 0.78
+    unit_cosine_hamming    maxSL=  -8.34 dBc+= -0.72 loss= 10.87 margin=-11.59 p99=  -8.73 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -10.72 dBc+=  1.67 loss=  0.93 margin=  0.74 p99= -11.80 meanAmp= 0.77
+    optimized_table        maxSL= -11.55 dBc+=  2.49 loss=  6.02 margin= -3.53 p99= -12.69 meanAmp= 0.47
+    optimized_aggressive   maxSL= -11.55 dBc+=  2.49 loss=  6.02 margin= -3.53 p99= -12.69 meanAmp= 0.47
+  case 5.0m az=+10 el=+0
+    uniform                maxSL=  -9.53 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -10.52 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.69 dBc+= -0.84 loss=  1.51 margin= -2.36 p99= -10.74 meanAmp= 0.77
+    unit_cosine_hamming    maxSL=  -8.04 dBc+= -1.48 loss= 11.69 margin=-13.17 p99=  -8.65 meanAmp= 0.24
+    optimized_dbc_margin   maxSL= -11.95 dBc+=  2.42 loss=  1.22 margin=  1.20 p99= -12.88 meanAmp= 0.80
+    optimized_table        maxSL= -12.99 dBc+=  3.46 loss=  6.02 margin= -2.56 p99= -13.99 meanAmp= 0.50
+    optimized_aggressive   maxSL= -12.01 dBc+=  2.48 loss= 12.04 margin= -9.56 p99= -13.52 meanAmp= 0.31
+  case 5.0m az=+20 el=+0
+    uniform                maxSL= -10.05 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.22 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.13 dBc+= -1.91 loss=  3.81 margin= -5.72 p99=  -9.78 meanAmp= 0.73
+    unit_cosine_hamming    maxSL=  -6.62 dBc+= -3.43 loss= 13.98 margin=-17.41 p99=  -7.67 meanAmp= 0.23
+    optimized_dbc_margin   maxSL= -12.02 dBc+=  1.98 loss=  1.21 margin=  0.77 p99= -12.74 meanAmp= 0.74
+    optimized_table        maxSL= -13.10 dBc+=  3.05 loss=  6.02 margin= -2.97 p99= -14.12 meanAmp= 0.49
+    optimized_aggressive   maxSL= -13.23 dBc+=  3.18 loss= 12.04 margin= -8.86 p99= -13.89 meanAmp= 0.31
+  case 5.0m az=+30 el=+0
+    uniform                maxSL= -10.69 dBc+=  0.00 loss=  0.00 margin=  0.00 p99= -11.57 meanAmp= 1.00
+    unit_cosine            maxSL=  -8.42 dBc+= -2.26 loss=  6.56 margin= -8.83 p99=  -9.76 meanAmp= 0.68
+    unit_cosine_hamming    maxSL=  -7.96 dBc+= -2.72 loss= 16.74 margin=-19.46 p99=  -8.56 meanAmp= 0.21
+    optimized_dbc_margin   maxSL= -12.85 dBc+=  2.16 loss=  1.45 margin=  0.71 p99= -13.93 meanAmp= 0.85
+    optimized_table        maxSL= -13.61 dBc+=  2.93 loss=  6.02 margin= -3.09 p99= -14.50 meanAmp= 0.58
+    optimized_aggressive   maxSL= -12.49 dBc+=  1.80 loss= 12.04 margin=-10.24 p99= -14.08 meanAmp= 0.38

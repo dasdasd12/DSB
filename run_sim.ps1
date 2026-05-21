@@ -1,9 +1,9 @@
 param(
-    [string]$tb = "verilog/tb_top.sv",
+    [string]$tb = "verilog/tb_uart_protocol_parser.sv",
     [string]$top = "",
     [string]$srcs = "verilog",
-    [string]$out = "icarus/tb_top.vvp",
-    [string]$vcd = "tb_top.vcd",
+    [string]$out = "icarus/tb_uart_protocol_parser.vvp",
+    [string]$vcd = "tb_uart_protocol_parser.vcd",
     [switch]$OpenWave,
     [string]$gtkwavePath = "gtkwave"
 )

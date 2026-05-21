@@ -7,6 +7,14 @@ module tb_pwm32_generator;
     logic signed [15:0] audio_in;
     logic [7:0] amplitude [0:31];
     logic [11:0] phase_del [0:31];
+    logic output_enable;
+    logic center_align;
+    logic use_rom_mapping;
+    logic [11:0] max_duty;
+    logic use_external_duty;
+    logic [11:0] global_duty_base;
+    logic [11:0] global_phase_offset;
+    logic [31:0] output_mask;
     logic [31:0] pwm_out;
 
     integer pass_cnt;
@@ -21,6 +29,14 @@ module tb_pwm32_generator;
         .audio_in  (audio_in),
         .amplitude (amplitude),
         .phase_del (phase_del),
+        .output_enable(output_enable),
+        .center_align(center_align),
+        .use_rom_mapping(use_rom_mapping),
+        .max_duty(max_duty),
+        .use_external_duty(use_external_duty),
+        .global_duty_base(global_duty_base),
+        .global_phase_offset(global_phase_offset),
+        .output_mask(output_mask),
         .pwm_out   (pwm_out)
     );
 
@@ -57,6 +73,14 @@ module tb_pwm32_generator;
         pass_cnt = 0;
         error_cnt = 0;
         audio_in = 16'sd0;
+        output_enable = 1'b1;
+        center_align = 1'b0;
+        use_rom_mapping = 1'b1;
+        max_duty = 12'd1250;
+        use_external_duty = 1'b0;
+        global_duty_base = 12'd0;
+        global_phase_offset = 12'd0;
+        output_mask = 32'hFFFFFFFF;
         for (i = 0; i < 32; i = i + 1) begin
             amplitude[i] = 8'd0;
             phase_del[i] = 12'd0;
@@ -90,6 +114,60 @@ module tb_pwm32_generator;
         amplitude[0] = 8'd0;
         repeat (3000) @(posedge clk);
         check(pwm_out[0] == 1'b0, "channel 0 returns low after amplitude clears");
+
+        amplitude[0] = 8'd255;
+        output_mask = 32'hFFFFFFFE;
+        repeat (3000) @(posedge clk);
+        check(pwm_out[0] == 1'b0, "output mask disables channel 0");
+
+        output_mask = 32'hFFFFFFFF;
+        output_enable = 1'b0;
+        repeat (3000) @(posedge clk);
+        check(pwm_out == 32'd0, "global output enable disables all channels");
+
+        output_enable = 1'b1;
+        center_align = 1'b1;
+        phase_del[0] = 12'd0;
+        repeat (3000) @(posedge clk);
+        seen_high = 0;
+        seen_low = 0;
+        repeat (3000) begin
+            @(posedge clk);
+            if (pwm_out[0])
+                seen_high = 1;
+            else
+                seen_low = 1;
+        end
+        check(seen_high && seen_low, "center-aligned channel toggles");
+
+        use_rom_mapping = 1'b0;
+        max_duty = 12'd64;
+        repeat (3000) @(posedge clk);
+        seen_high = 0;
+        seen_low = 0;
+        repeat (3000) begin
+            @(posedge clk);
+            if (pwm_out[0])
+                seen_high = 1;
+            else
+                seen_low = 1;
+        end
+        check(seen_high && seen_low, "fixed-duty debug carrier toggles with small max duty");
+
+        use_external_duty = 1'b1;
+        global_duty_base = 12'd80;
+        global_phase_offset = 12'd100;
+        repeat (3000) @(posedge clk);
+        seen_high = 0;
+        seen_low = 0;
+        repeat (3000) begin
+            @(posedge clk);
+            if (pwm_out[0])
+                seen_high = 1;
+            else
+                seen_low = 1;
+        end
+        check(seen_high && seen_low, "external duty and phase offset path toggles");
 
         $display("Simulation summary: passes=%0d errors=%0d", pass_cnt, error_cnt);
         if (error_cnt == 0)
