@@ -7,8 +7,8 @@ module top_ultrasound_array (
     input  logic uart_rx,
     input  logic key_in,
 
-    // 32 路 PWM 直驱输出
-    output logic [31:0] transducer_io,
+    // 60 路 PWM 直驱输出
+    output logic [59:0] transducer_io,
 
     output logic led,
 
@@ -70,6 +70,7 @@ assign config_led = !(i2c_init_done && !i2c_error);
         end
     end
 
+  //  assign led = audio_mode;
 
     // 3. I2S 接收器 (12.288MHz 时钟域)
     logic signed [15:0] i2s_left_12m, i2s_right_12m;
@@ -120,23 +121,23 @@ assign config_led = !(i2c_init_done && !i2c_error);
     // 6. 音频流处理核心 (噪声门 -> 放大 -> 饱和截断)
     // =========================================================
     
-    // // Stage 1: 数字噪声门
-    // logic signed [15:0] gated_audio;
-    // localparam signed [15:0] NOISE_THRESHOLD = 16'sd100; // 根据实际底噪调整
+    // Stage 1: 数字噪声门
+    logic signed [15:0] gated_audio;
+    localparam signed [15:0] NOISE_THRESHOLD = 16'sd300; // 根据实际底噪调整
     
-    // always_comb begin
-    //     // 提取绝对值进行判断，滤除微小底噪
-    //     if (i2s_left_100m > NOISE_THRESHOLD || i2s_left_100m < -NOISE_THRESHOLD)
-    //         gated_audio = i2s_left_100m; // 这里选择左声道作为主信号，右声道同样可以尝试
-    //     else
-    //         gated_audio = 16'sd0; // 纯净待机
-    // end
+    always_comb begin
+        // 提取绝对值进行判断，滤除微小底噪
+        if (i2s_left_100m > NOISE_THRESHOLD || i2s_left_100m < -NOISE_THRESHOLD)
+            gated_audio = i2s_left_100m; // 这里选择左声道作为主信号，右声道同样可以尝试
+        else
+            gated_audio = 16'sd0; // 纯净待机
+    end
 
     // Stage 2: 拓宽位宽并进行增益放大
     logic signed [21:0] scaled_audio;
     // 这里的放大倍数可以根据需要调整 (例如 4, 8, 16)
 
-    assign scaled_audio = i2s_left_100m*8; 
+    assign scaled_audio = gated_audio*8; 
 
     // Stage 3: 多路选择与饱和限幅器 (防爆音)
     logic signed [15:0] final_audio_stream;
@@ -155,37 +156,11 @@ assign config_led = !(i2c_init_done && !i2c_error);
         end
     end
 
-    // // 替换原有的 Stage 3 逻辑
-    // logic signed [15:0] final_audio_stream;
-    // logic signed [15:0] limited_external_audio;
-
-    // // 软限幅模块
-    // audio_soft_limiter u_soft_limiter (
-    //     .clk      (clk_100m),
-    //     .rst_n    (rst_n),
-    //     .audio_in (scaled_audio),             // 22-bit 放大信号
-    //     .audio_out(limited_external_audio)    // 16-bit 平滑限幅信号
-    // );
-
-    // // 多路选择
-    // always_comb begin
-    //     if (audio_mode == 1'b0) begin
-    //         final_audio_stream = sin_1k_16b;  // DDS 模式保持
-    //     end else begin
-    //         final_audio_stream = limited_external_audio; // 换用平滑的外部音频
-    //     end
-    // end
-
     // 5. 串口协议解析 (幅度与相位控制)
-    logic [7:0]  beam_amplitude [0:31];
-    logic [11:0] beam_phase     [0:31];
-    (* mark_debug = "true", keep = "true" *) logic [7:0]  uart_byte;
-    (* mark_debug = "true", keep = "true" *) logic        uart_done;
-    (* mark_debug = "true", keep = "true" *) logic        beam_update_pulse;
-    (* mark_debug = "true", keep = "true" *) logic [15:0] uart_done_stretch_cnt;
-    (* mark_debug = "true", keep = "true" *) logic [15:0] beam_update_stretch_cnt;
-    (* mark_debug = "true", keep = "true" *) logic        uart_done_debug;
-    (* mark_debug = "true", keep = "true" *) logic        beam_update_debug;
+    logic [7:0]  beam_amplitude [0:59];
+    logic [11:0] beam_phase     [0:59];
+    logic [7:0]  uart_byte;
+    logic        uart_done;
     
     uart_rx #(.CLK_FRE(100),
      .BAUD_RATE(115200)) u_uart_rx (
@@ -204,32 +179,29 @@ assign config_led = !(i2c_init_done && !i2c_error);
          .rx_done(uart_done),
         .o_amplitude(beam_amplitude), 
         .o_phase(beam_phase),
-        .o_update_pulse(beam_update_pulse)
+        .o_update_pulse(o_update_pulse)
     );
 
-    // Stretch single-cycle UART/debug pulses so they are easy to observe in ILA.
-    always_ff @(posedge clk_100m or negedge rst_n) begin
-        if (!rst_n) begin
-            uart_done_stretch_cnt   <= 16'd0;
-            beam_update_stretch_cnt <= 16'd0;
-        end else begin
-            if (uart_done)
-                uart_done_stretch_cnt <= 16'hFFFF;
-            else if (uart_done_stretch_cnt != 16'd0)
-                uart_done_stretch_cnt <= uart_done_stretch_cnt - 1'b1;
-
-            if (beam_update_pulse)
-                beam_update_stretch_cnt <= 16'hFFFF;
-            else if (beam_update_stretch_cnt != 16'd0)
-                beam_update_stretch_cnt <= beam_update_stretch_cnt - 1'b1;
-        end
+logic led_s;
+always_ff @( posedge clk_100m or negedge rst_n ) begin
+    if(!rst_n)begin
+        
+        led_s <= 1'b0; 
     end
 
-    assign uart_done_debug = (uart_done_stretch_cnt != 16'd0);
-    assign beam_update_debug = (beam_update_stretch_cnt != 16'd0);
+    else begin
+        if(o_update_pulse)begin
+            led_s <= ~led_s; 
+        end
+         else begin
+            led_s <= led_s;
+         end
+end
+end
 
+assign led = led_s;
     // 6. 核心调制与驱动 (接收 16位音频流)
-    pwm32_generator u_pwm32 (
+    pwm60_generator u_pwm60 (
         .clk       (clk_100m),
         .rst_n     (rst_n),
         .audio_in  (final_audio_stream), // 16-bit 接口
@@ -237,5 +209,6 @@ assign config_led = !(i2c_init_done && !i2c_error);
         .phase_del (beam_phase),
         .pwm_out   (transducer_io)
     );
+
 
 endmodule

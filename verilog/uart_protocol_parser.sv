@@ -9,9 +9,9 @@ module uart_protocol_parser (
     input  logic [7:0]  rx_data,
     input  logic        rx_done,
     
-    // 输出给 32 路 PWM 发生器的参数
-    output logic [7:0]  o_amplitude [0:31],
-    output logic [11:0] o_phase     [0:31],
+    // 输出给 60 路 PWM 发生器的参数
+    output logic [7:0]  o_amplitude [0:59],
+    output logic [11:0] o_phase     [0:59],
     output logic        o_update_pulse // 当一组数据成功更新时，拉高一个时钟周期
 );
 
@@ -20,7 +20,7 @@ module uart_protocol_parser (
         S_IDLE,       // 0: 等待包头1 (0xAA)
         S_HEAD2,      // 1: 等待包头2 (0xBB)
         S_CMD,        // 2: 接收指令码 (0x01)
-        S_AMP,        // 3: 接收32个幅度字节
+        S_AMP,        // 3: 接收60个幅度字节
         S_PHASE_L,    // 4: 接收相位低字节 (Little-Endian)
         S_PHASE_H,    // 5: 接收相位高字节
         S_CHECKSUM,   // 6: 接收并比对校验和
@@ -31,13 +31,13 @@ module uart_protocol_parser (
     state_t state;
 
     // 内部寄存器
-    logic [5:0] byte_cnt;           // 计数器 (0~31)
+    logic [6:0] byte_cnt;           // 计数器 (0~59)
     logic [7:0] calc_sum;           // 本地计算的校验和
     logic [7:0] temp_phase_L;       // 暂存相位的低字节
     
     // 影子寄存器 (Shadow Registers) - 只有校验通过才会覆盖输出
-    logic [7:0]  shadow_amplitude [0:31];
-    logic [11:0] shadow_phase     [0:31];
+    logic [7:0]  shadow_amplitude [0:59];
+    logic [11:0] shadow_phase     [0:59];
 
     // 状态机逻辑
     always_ff @(posedge clk or negedge rst_n) begin
@@ -48,7 +48,7 @@ module uart_protocol_parser (
             o_update_pulse <= 1'b0;
             
             // 复位时默认参数：幅度满载，相位为0 (指向正前方)
-            for (int i = 0; i < 32; i++) begin
+            for (int i = 0; i < 60; i++) begin
                 o_amplitude[i] <= 8'd255;
                 o_phase[i]     <= 12'd0;
             end
@@ -85,7 +85,7 @@ module uart_protocol_parser (
                         calc_sum <= calc_sum + rx_data; // 累加校验和
                         shadow_amplitude[byte_cnt] <= rx_data;
                         
-                        if (byte_cnt == 6'd31) begin
+                        if (byte_cnt == 7'd59) begin
                             byte_cnt <= '0;
                             state    <= S_PHASE_L;
                         end else begin
@@ -106,7 +106,7 @@ module uart_protocol_parser (
                         // 拼合 12 位相位: {高位低4位, 低字节8位}
                         shadow_phase[byte_cnt] <= {rx_data[3:0], temp_phase_L};
                         
-                        if (byte_cnt == 6'd31) begin
+                        if (byte_cnt == 7'd59) begin
                             state <= S_CHECKSUM;
                         end else begin
                             byte_cnt <= byte_cnt + 1'b1;
@@ -133,7 +133,7 @@ module uart_protocol_parser (
                     S_TAIL2: begin
                         if (rx_data == 8'h0A) begin
                             // 校验和包尾全部正确，将影子寄存器安全地倒入输出寄存器
-                            for (int i = 0; i < 32; i++) begin
+                            for (int i = 0; i < 60; i++) begin
                                 o_amplitude[i] <= shadow_amplitude[i];
                                 o_phase[i]     <= shadow_phase[i];
                             end
